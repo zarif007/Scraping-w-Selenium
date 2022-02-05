@@ -2,14 +2,15 @@ import time
 
 from selenium import webdriver
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 
 @app.route('/', methods=['POST', 'GET'])
 def get_channel_info():
-    website_url = 'https://www.youtube.com/channel/UC6tpyBt63bIKnnwfN78T0Pw'
+
+    website_url = request.form['website']
 
     driver = webdriver.Chrome()
 
@@ -40,12 +41,15 @@ def get_channel_info():
     video_list = []
 
     for video in videos:
-        title = video.find_element_by_xpath('.//*[@id="video-title"]').text
-        views = video.find_element_by_xpath('.//*[@id="metadata-line"]/span[1]').text
-        when = video.find_element_by_xpath('.//*[@id="metadata-line"]/span[2]').text
-        video_obj = {'title': title, 'views': views, 'when': when}
-        if title != '':
-            video_list.append(video_obj)
+        try:
+            title = video.find_element_by_xpath('.//*[@id="video-title"]').text
+            views = video.find_element_by_xpath('.//*[@id="metadata-line"]/span[1]').text
+            when = video.find_element_by_xpath('.//*[@id="metadata-line"]/span[2]').text
+            video_obj = {'title': title, 'views': views, 'when': when}
+            if title != '':
+                video_list.append(video_obj)
+        except:
+            pass
 
     info['video_list'] = video_list
 
@@ -54,37 +58,44 @@ def get_channel_info():
     time.sleep(2)
 
     # ____________Routing to About page____________
-    about_button = driver.find_element_by_xpath('//*[@id="tabsContent"]/tp-yt-paper-tab[6]')
-    about_button.click()
+    try:
+        about_button = driver.find_element_by_xpath('//*[@id="tabsContent"]/tp-yt-paper-tab[6]')
 
-    time.sleep(5)
+        if about_button.text == 'ABOUT':
+            about_button.click()
+        else:
+            driver.find_element_by_xpath('//*[@id="tabsContent"]/tp-yt-paper-tab[7]').click()
 
-    #_____________Description of the channel__________
-    descriptions = driver.find_elements_by_xpath('//*[@id="description"]')
+        time.sleep(5)
 
-    description = ''
+        #_____________Description of the channel__________
+        descriptions = driver.find_elements_by_xpath('//*[@id="description"]')
 
-    for des in descriptions:
-        description = description + des.text
+        description = ''
 
-    info['description'] = description
+        for des in descriptions:
+            description = description + des.text
 
-    joining_date = driver.find_element_by_xpath('//*[@id="right-column"]/yt-formatted-string[2]')
+        info['description'] = description
 
-    info['joining_date'] = joining_date.text
+        joining_date = driver.find_element_by_xpath('//*[@id="right-column"]/yt-formatted-string[2]')
 
-    total_views = driver.find_element_by_xpath('//*[@id="right-column"]/yt-formatted-string[3]')
+        info['joining_date'] = joining_date.text
 
-    info['total_views'] = total_views.text
+        total_views = driver.find_element_by_xpath('//*[@id="right-column"]/yt-formatted-string[3]')
 
-    #____________Social Media Links______________
-    links = driver.find_elements_by_xpath('//*[@id="link-list-container"]/a')
+        info['total_views'] = total_views.text
 
-    creaters_links_list = {}
-    for link in links:
-        creaters_links_list[link.text] = link.get_attribute('href')
+        #____________Social Media Links______________
+        links = driver.find_elements_by_xpath('//*[@id="link-list-container"]/a')
 
-    info['creaters_links_list'] = creaters_links_list
+        creaters_links_list = {}
+        for link in links:
+            creaters_links_list[link.text] = link.get_attribute('href')
+
+        info['creaters_links_list'] = creaters_links_list
+    except:
+        pass
 
 
     time.sleep(1)
